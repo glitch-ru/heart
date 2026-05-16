@@ -3,11 +3,540 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
+    <title>Heart - Encrypted Message</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;600&family=Playfair+Display:ital,wght@1,300;1,600&family=Space+Grotesk:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+        background-color: #050505;
+        color: white;
+        user-select: none;
+      }
+
+      body::selection {
+        background-color: rgba(255, 77, 109, 0.3);
+      }
+
+      .container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+      }
+
+      .scanline {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100px;
+        background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(0, 0, 0, 0) 100%);
+        opacity: 0.1;
+        pointer-events: none;
+        animation: scanline 10s linear infinite;
+        z-index: 10;
+      }
+
+      @keyframes scanline {
+        0% { transform: translateY(-100%);
+        100% { transform: translateY(calc(100vh + 100px)); }
+      }
+
+      .stage {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+      }
+
+      .stage.active {
+        opacity: 1;
+        transition: opacity 0.5s ease;
+      }
+
+      .stage.hidden {
+        display: none;
+      }
+
+      #console-stage {
+        max-width: 600px;
+        padding: 32px;
+        width: 100%;
+      }
+
+      .console-content {
+        font-family: "Fira Code", monospace;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.8);
+        space-y: 8px;
+      }
+
+      .console-line {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+        align-items: center;
+        min-height: 24px;
+      }
+
+      .console-tag {
+        color: rgba(255, 143, 177, 0.6);
+        flex-shrink: 0;
+      }
+
+      .typewriter {
+        font-family: "Fira Code", monospace;
+      }
+
+      .status-ready {
+        color: #4ade80;
+        opacity: 0;
+        animation: fadeIn 0.3s ease forwards;
+      }
+
+      @keyframes fadeIn {
+        to { opacity: 1; }
+      }
+
+      .message-section {
+        padding-top: 32px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 24px;
+        opacity: 0;
+        animation: slideUp 0.5s ease 0.5s forwards;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .encrypted-message {
+        color: rgba(255, 255, 255, 0.4);
+        font-style: italic;
+        font-family: "Fira Code", monospace;
+        font-size: 14px;
+      }
+
+      #decrypt-button {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 24px;
+        border: 1px solid rgba(255, 77, 109, 0.3);
+        background-color: rgba(255, 77, 109, 0.05);
+        color: #ff8fb1;
+        font-family: "Fira Code", monospace;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 4px;
+        user-select: none;
+      }
+
+      #decrypt-button:hover {
+        background-color: rgba(255, 77, 109, 0.1);
+      }
+
+      #decrypt-button .lock-icon {
+        display: inline-block;
+        transition: transform 0.3s;
+      }
+
+      #decrypt-button:hover .lock-icon {
+        transform: rotate(12deg);
+      }
+
+      .terminal-cursor {
+        display: inline-block;
+        width: 2px;
+        height: 1em;
+        background-color: #ff4d6d;
+        margin-left: 4px;
+        animation: blink 1s step-end infinite;
+      }
+
+      @keyframes blink {
+        from, to { background-color: transparent; }
+        50% { background-color: #ff4d6d; }
+      }
+
+      .hint-text {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.2);
+        font-family: "Fira Code", monospace;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+
+      #reveal-stage {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #heart-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+      }
+
+      .reveal-content {
+        position: relative;
+        z-index: 20;
+        text-align: center;
+        opacity: 0;
+        animation: revealFadeIn 1.5s ease 3s forwards;
+      }
+
+      @keyframes revealFadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.8);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .reveal-title {
+        color: #ff4d6d;
+        font-family: "Fira Code", monospace;
+        font-size: 20px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        text-shadow: 0 0 10px rgba(255, 77, 109, 0.5), 0 0 20px rgba(255, 77, 109, 0.3);
+      }
+
+      .reveal-divider {
+        width: 48px;
+        height: 1px;
+        background-color: rgba(255, 77, 109, 0.3);
+        margin: 32px auto;
+      }
+
+      #re-encrypt-button {
+        color: rgba(255, 255, 255, 0.2);
+        font-family: "Fira Code", monospace;
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: color 0.3s;
+        user-select: none;
+      }
+
+      #re-encrypt-button:hover {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .tech-overlay-top {
+        position: absolute;
+        top: 32px;
+        left: 32px;
+        font-size: 10px;
+        font-family: "Fira Code", monospace;
+        color: rgba(255, 255, 255, 0.1);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        line-height: 1.5;
+      }
+
+      .tech-overlay-bottom {
+        position: absolute;
+        bottom: 32px;
+        right: 32px;
+        font-size: 10px;
+        font-family: "Fira Code", monospace;
+        color: rgba(255, 255, 255, 0.1);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .cursor-pointer {
+        cursor: pointer;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div class="scanline"></div>
+    <div class="container">
+      <!-- Console Stage -->
+      <div id="console-stage" class="stage active">
+        <div class="console-content">
+          <div class="console-line">
+            <span class="console-tag">[system]</span>
+            <span class="typewriter" id="typewriter"></span>
+          </div>
+          
+          <div class="console-line">
+            <span class="console-tag">[status]</span>
+            <span class="status-ready" id="status-ready">READY</span>
+          </div>
+
+          <div class="message-section" id="message-section">
+            <p class="encrypted-message">{'>'} One encrypted package found for you.</p>
+            
+            <button id="decrypt-button">
+              <span class="lock-icon">🔒</span>
+              <span>Decrypt Message</span>
+              <span class="terminal-cursor" style="margin-left: auto;"></span>
+            </button>
+            
+            <p class="hint-text">(or just click anywhere)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reveal Stage -->
+      <div id="reveal-stage" class="stage">
+        <canvas id="heart-canvas"></canvas>
+        
+        <div class="reveal-content">
+          <h2 class="reveal-title">Decrypted</h2>
+          <div class="reveal-divider"></div>
+          
+          <button id="re-encrypt-button">
+            Re-encrypt
+          </button>
+        </div>
+
+        <div class="tech-overlay-top">
+          <div>ln: 420</div>
+          <div>id: 0xDEADBEEF</div>
+          <div>type: organic_emotion</div>
+        </div>
+        
+        <div class="tech-overlay-bottom">
+          heart_reveal // success
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Typewriter effect
+      class Typewriter {
+        constructor(elementId, text, delay = 50) {
+          this.element = document.getElementById(elementId);
+          this.text = text;
+          this.delay = delay;
+          this.index = 0;
+          this.onComplete = null;
+        }
+
+        start() {
+          return new Promise((resolve) => {
+            this.onComplete = resolve;
+            this.type();
+          });
+        }
+
+        type() {
+          if (this.index < this.text.length) {
+            this.element.textContent += this.text[this.index];
+            this.index++;
+            setTimeout(() => this.type(), this.delay);
+          } else if (this.onComplete) {
+            this.onComplete();
+          }
+        }
+      }
+
+      // Heart canvas animation
+      class TextHeart {
+        constructor(canvasId) {
+          this.canvas = document.getElementById(canvasId);
+          this.ctx = this.canvas.getContext('2d');
+          this.points = [];
+          this.animationFrameId = null;
+          this.start = null;
+
+          this.canvas.width = window.innerWidth;
+          this.canvas.height = window.innerHeight;
+          
+          window.addEventListener('resize', () => this.resize());
+          this.initPoints();
+          this.animate();
+        }
+
+        resize() {
+          this.canvas.width = window.innerWidth;
+          this.canvas.height = window.innerHeight;
+          this.initPoints();
+        }
+
+        initPoints() {
+          this.points = [];
+          const centerX = this.canvas.width / 2;
+          const centerY = this.canvas.height / 2;
+          const scale = Math.min(this.canvas.width, this.canvas.height) / 45;
+          const text = "i love you";
+
+          // Outer heart curve
+          for (let t = 0; t < Math.PI * 2; t += 0.05) {
+            const x = 16 * Math.pow(Math.sin(t), 3);
+            const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+            
+            this.points.push({
+              x: centerX + x * scale,
+              y: centerY + y * scale,
+              alpha: 0,
+              targetAlpha: 0.8 + Math.random() * 0.2,
+              delay: Math.random() * 2000,
+              text: text
+            });
+          }
+
+          // Inner layers
+          for (let s = 0.2; s < 1; s += 0.2) {
+            for (let t = 0; t < Math.PI * 2; t += 0.1) {
+              const x = 16 * Math.pow(Math.sin(t), 3);
+              const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+              
+              this.points.push({
+                x: centerX + x * scale * s,
+                y: centerY + y * scale * s,
+                alpha: 0,
+                targetAlpha: 0.4 + Math.random() * 0.4,
+                delay: Math.random() * 3000,
+                text: text
+              });
+            }
+          }
+        }
+
+        animate = () => {
+          if (this.start === null) this.start = performance.now();
+          const now = performance.now();
+          const elapsed = now - this.start;
+
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          this.ctx.font = '14px "Fira Code", monospace';
+          
+          this.points.forEach(p => {
+            if (elapsed > p.delay) {
+              p.alpha += (p.targetAlpha - p.alpha) * 0.02;
+            }
+
+            this.ctx.fillStyle = `rgba(255, 77, 109, ${p.alpha})`;
+            this.ctx.fillText(p.text, p.x - this.ctx.measureText(p.text).width / 2, p.y);
+          });
+
+          this.animationFrameId = requestAnimationFrame(this.animate);
+        }
+
+        destroy() {
+          if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+          }
+        }
+      }
+
+      // Main app state
+      let currentStage = 'console';
+      let consoleFinished = false;
+      let heartAnimation = null;
+
+      const consoleStage = document.getElementById('console-stage');
+      const revealStage = document.getElementById('reveal-stage');
+      const container = document.querySelector('.container');
+      const statusReady = document.getElementById('status-ready');
+      const messageSection = document.getElementById('message-section');
+      const decryptButton = document.getElementById('decrypt-button');
+      const reEncryptButton = document.getElementById('re-encrypt-button');
+
+      async function startTypewriter() {
+        const typewriter = new Typewriter('typewriter', 'Initializing heart.PROTOCOL_v2.0...', 30);
+        await typewriter.start();
+        consoleFinished = true;
+        statusReady.style.opacity = '1';
+        messageSection.style.display = 'flex';
+        container.classList.add('cursor-pointer');
+      }
+
+      function switchToReveal() {
+        currentStage = 'reveal';
+        consoleStage.classList.remove('active');
+        consoleStage.classList.add('hidden');
+        revealStage.classList.add('active');
+        container.classList.remove('cursor-pointer');
+        
+        heartAnimation = new TextHeart('heart-canvas');
+      }
+
+      function switchToConsole() {
+        currentStage = 'console';
+        revealStage.classList.remove('active');
+        revealStage.classList.add('hidden');
+        consoleStage.classList.add('active');
+        consoleStage.classList.remove('hidden');
+        
+        if (heartAnimation) {
+          heartAnimation.destroy();
+          heartAnimation = null;
+        }
+        
+        container.classList.add('cursor-pointer');
+      }
+
+      // Event listeners
+      decryptButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        switchToReveal();
+      });
+
+      reEncryptButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        switchToConsole();
+      });
+
+      container.addEventListener('click', () => {
+        if (currentStage === 'console' && consoleFinished) {
+          switchToReveal();
+        }
+      });
+
+      // Start the animation
+      startTypewriter();
+    </script>
   </body>
 </html>
-
